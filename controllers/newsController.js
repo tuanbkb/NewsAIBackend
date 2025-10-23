@@ -1,15 +1,53 @@
-exports.get = (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    code: 200,
-    message:
-      'This is the hello message. If you see this, you have successfully connected to the NewsAI backend!',
-    requestedAt: req.requestTime,
-  });
+const News = require('../models/newsModel');
+
+exports.createNews = async (req, res) => {
+  try {
+    const newsItem = await News.create(req.body);
+    res.status(201).json({
+      status: 'success',
+      data: {
+        news: newsItem,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err,
+    });
+  }
 };
 
-exports.post = (req, res) => {
-  res
-    .status(200)
-    .json({ data: req.body, message: 'You can post to this endpoint' });
+exports.getAllNews = async (req, res) => {
+  try {
+    const newsList = await News.find();
+    res.status(200).json({
+      status: 'success',
+      results: newsList.length,
+      data: {
+        news: newsList,
+      },
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: 'fail',
+      message: err,
+    });
+  }
+};
+
+exports.getNewsById = async (req, res) => {
+  try {
+    const newsItem = await News.findById(req.params.id);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        news: newsItem,
+      },
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: 'fail',
+      message: err,
+    });
+  }
 };
