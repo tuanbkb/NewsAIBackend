@@ -1,6 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 
+const AppError = require('./utils/appError');
+const globalErrorHandler = require('./controllers/errorController');
 const newsRouter = require('./routes/newsRoutes');
 
 const app = express();
@@ -17,5 +19,16 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/v1/news', newsRouter);
+
+// Handling unhandled routes
+app.use((req, res, next) => {
+  // const err = new Error(`Can't find ${req.originalUrl} on this server!`);
+  // err.statusCode = 404;
+  // err.status = 'fail';
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+// Error handling middleware
+app.use(globalErrorHandler);
 
 module.exports = app;
