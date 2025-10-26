@@ -19,8 +19,7 @@ mongoose
   .connect(db, {
     useNewUrlParser: true,
   })
-  .then((con) => {
-    console.log(con.connections);
+  .then(() => {
     console.log('DB connection successful!');
   });
 
