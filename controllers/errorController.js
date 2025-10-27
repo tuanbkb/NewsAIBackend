@@ -22,7 +22,6 @@ const handleValidationErrorDB = (err) => {
 const sendError = (err, res) => {
   if (!err.isOperational) {
     // Programming or other unknown error: don't leak error details
-    console.error('ERROR 💥:', err);
     res.status(500).json({
       status: 'error',
       code: 500,
@@ -30,11 +29,10 @@ const sendError = (err, res) => {
       error: err, //remove in production
     });
   } else {
-    console.log('Operational error:', err);
     res.status(err.statusCode).json({
       status: err.status,
       code: err.statusCode,
-      message: err.message || 'Something went wrong!',
+      message: err.message,
       error: err, //remove in production
     });
   }
@@ -44,13 +42,15 @@ const sendError = (err, res) => {
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
+  err.message = err.message || 'Something went wrong!';
 
-  let error = { ...err };
+  let error = err;
 
-  if (err instanceof mongoose.Error.CastError) error = handleCastErrorDB(err);
-  if (err.code === 11000) error = handleDuplicateFieldsDB(err);
-  if (err instanceof mongoose.Error.ValidationError)
-    error = handleValidationErrorDB(err);
+  if (error instanceof mongoose.Error.CastError)
+    error = handleCastErrorDB(error);
+  if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+  if (error instanceof mongoose.Error.ValidationError)
+    error = handleValidationErrorDB(error);
 
   sendError(error, res);
 };
