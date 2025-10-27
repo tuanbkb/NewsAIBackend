@@ -115,7 +115,7 @@ exports.getAll = (Model) =>
         code: 200,
         results: docs.length,
         data: {
-          news: docs,
+          data: docs,
         },
       });
     }

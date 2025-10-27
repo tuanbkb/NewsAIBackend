@@ -4,6 +4,8 @@ const morgan = require('morgan');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const newsRouter = require('./routes/newsRoutes');
+const articleRouter = require('./routes/articleRoutes');
+const trendRouter = require('./routes/trendRoutes');
 
 const app = express();
 
@@ -19,6 +21,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/v1/news', newsRouter);
+app.use('/api/v1/articles', articleRouter);
+app.use('/api/v1/trends', trendRouter);
 
 // Handling unhandled routes
 app.use((req, res, next) => {
