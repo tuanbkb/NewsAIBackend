@@ -5,9 +5,24 @@ const openAiInstance = axios.create({
   baseURL: 'https://api.openai.com/v1',
   headers: {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
   },
 });
+
+openAiInstance.interceptors.request.use(
+  (config) => {
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) {
+      throw new AppError(
+        'OpenAI API key is not set in environment variables',
+        500,
+      );
+    }
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${key}`;
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 exports.getChatCompletion = async (
   content,
@@ -21,7 +36,8 @@ exports.getChatCompletion = async (
     });
     return response.data.choices[0].message.content;
   } catch (error) {
-    throw new AppError('Error fetching chat completion from OpenAI', 500);
+    console.error('OpenAI error: ', error);
+    throw new AppError('Error fetching chat completion from OpenAI', 400);
   }
 };
 
@@ -56,7 +72,7 @@ ${JSON.stringify(articlesSummary, null, 2)}`;
     const newsArticle = JSON.parse(response);
     return newsArticle;
   } catch (error) {
-    throw new AppError('Error generating news from articles summary', 500);
+    throw new AppError('Error generating news from articles summary', 400);
   }
 };
 
@@ -88,6 +104,6 @@ A short, clean summary (in original language).`;
     const summary = await this.getChatCompletion(prompt);
     return summary;
   } catch (error) {
-    throw new AppError('Error generating article summary', 500);
+    throw new AppError('Error generating article summary', 400);
   }
 };

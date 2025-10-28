@@ -18,6 +18,7 @@ const articleSchema = new mongoose.Schema({
   url: {
     type: String,
     trim: true,
+    unique: true,
     required: [true, 'An article must have a URL'],
   },
   thumbnail_url: {

@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const cron = require('node-cron');
 const app = require('./app');
+const runDailyCron = require('./services/dailyCronJob');
 
 process.on('uncaughtException', (err) => {
   console.log('💥 UNCAUGHT EXCEPTION! Shutting down...');
@@ -27,6 +29,12 @@ const port = process.env.PORT || 5104;
 const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
 });
+
+// cron.schedule('0 */6 * * *', () => {
+//   runDailyCron().catch((err) => {
+//     console.error('Scheduled daily cron job failed:', err);
+//   });
+// });
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');
