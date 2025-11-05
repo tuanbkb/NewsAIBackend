@@ -94,7 +94,7 @@ exports.getAll = (Model) =>
       const totalDocs = await Model.countDocuments(filterObj);
       const limit = req.query.limit * 1 || 100;
       const totalPages = Math.ceil(totalDocs / limit);
-      const docs = await features.paginate().query;
+      const docs = await features.paginate().lean().query;
       res.status(200).json({
         status: 'success',
         code: 200,
@@ -109,7 +109,7 @@ exports.getAll = (Model) =>
         },
       });
     } else {
-      const docs = await features.query;
+      const docs = await features.lean().query;
       res.status(200).json({
         status: 'success',
         code: 200,

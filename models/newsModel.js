@@ -6,9 +6,10 @@ const newsSchema = new mongoose.Schema({
     trim: true,
     required: [true, 'A news article must have a title'],
   },
-  reference_articles_id: {
-    type: [String],
-    required: [true, 'A news article must have reference articles IDs'],
+  reference_articles: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Article',
+    required: [true, 'A news article must have reference articles'],
   },
   data: {
     type: String,

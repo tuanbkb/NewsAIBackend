@@ -10,7 +10,10 @@ exports.firecrawlInstance = axios.create({
 
 exports.scrapeArticles = async (url) => {
   try {
-    const response = await this.firecrawlInstance.post('/v1/scrape', { url });
+    const response = await this.firecrawlInstance.post('/v1/scrape', {
+      url,
+      timeout: 60000,
+    });
     return response.data.data;
   } catch (error) {
     console.error('FireCrawl error: ', error);

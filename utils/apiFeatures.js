@@ -53,6 +53,22 @@ class APIFeatures {
 
     return this;
   }
+
+  // Populate referenced documents
+  populate(path, select, options = {}) {
+    this.query = this.query.populate({
+      path,
+      select: `${select} -__v`,
+      ...options,
+    });
+    return this;
+  }
+
+  // Convert Mongoose documents to plain JavaScript objects
+  lean() {
+    this.query = this.query.lean();
+    return this;
+  }
 }
 
 module.exports = APIFeatures;

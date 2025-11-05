@@ -7,16 +7,54 @@ const Article = require('../models/articleModel');
 const softFilterArticle = require('../utils/softFilterArticle');
 const Trend = require('../models/trendModel');
 const News = require('../models/newsModel');
+const retry = require('../utils/retryFunc');
+const softFilterTrend = require('../utils/softFilterTrend');
 
 module.exports = async () => {
   try {
-    const trendingKeywords = await serpApi.getTrendingNows();
+    let trendingKeywords;
+    try {
+      trendingKeywords = await retry(() => serpApi.getTrendingNows());
+    } catch (err) {
+      console.error(
+        'Failed to fetch trending keywords, aborting cron run.',
+        err,
+      );
+      return;
+    }
+
+    trendingKeywords = softFilterTrend(trendingKeywords);
+
+    // Filter trends using OpenAI
+    // try {
+    //   trendingKeywords = await retry(() =>
+    //     openAi.filterTrends(trendingKeywords),
+    //   );
+    // } catch (err) {
+    //   console.error(
+    //     'Failed to filter trends, proceeding with unfiltered list.',
+    //     err,
+    //   );
+    // }
+
     const newsArticlesToSave = [];
     const news = [];
 
     for (const item of trendingKeywords || []) {
       const newsPageToken = item.news_page_token;
-      const newsItemList = await serpApi.getNewsFromTrends(newsPageToken);
+      let newsItemList;
+      try {
+        newsItemList = await retry(() =>
+          serpApi.getNewsFromTrends(newsPageToken),
+        );
+      } catch (err) {
+        // Skip this trend if we cannot fetch its news page after retries
+        console.error(
+          `Skipping trend due to fetch error: ${item.keyword || newsPageToken}`,
+          err,
+        );
+        continue;
+      }
       const newsArticles = [];
       const summaries = [];
       for (const newsItem of newsItemList || []) {
@@ -28,14 +66,19 @@ module.exports = async () => {
           console.log(`Article already exists: ${url}`);
           summaries.push(existingArticle);
         } else {
-          // TODO: Temporary fix timeout by skipping timeout request
-          // Implement a more robust solution later
           try {
-            const scrapedData = await firecrawl.scrapeArticles(url);
+            const scrapedData = await retry(() =>
+              firecrawl.scrapeArticles(url),
+            );
             const { markdown, metadata } = scrapedData;
             const softFilteredMarkdown = softFilterArticle(markdown);
-            const summary =
-              await openAi.getArticleSummary(softFilteredMarkdown);
+            const articleData = {
+              title: newsItem.title,
+              data: softFilteredMarkdown,
+            };
+            const summary = await retry(() =>
+              openAi.getArticleSummary(articleData),
+            );
             // Get source logo URL from metadata if available
             const sourceLogoUrl =
               metadata.favicon || metadata.icon || undefined;
@@ -56,9 +99,21 @@ module.exports = async () => {
       }
 
       newsArticlesToSave.push(...newsArticles);
-      const newsResult = await openAi.getNewsFromArticlesSummary(
-        summaries.map((a) => ({ title: a.title, summary: a.summary })),
-      );
+      let newsResult;
+      try {
+        newsResult = await retry(() =>
+          openAi.getNewsFromArticlesSummary(
+            summaries.map((a) => ({ title: a.title, summary: a.summary })),
+          ),
+        );
+      } catch (err) {
+        // Skip this trend if summarization fails after retries
+        console.error(
+          `Skipping trend due to summarization error: ${item.keyword || newsPageToken}`,
+          err,
+        );
+        continue;
+      }
       // Return article URLs for now — we'll resolve them to ObjectIds
       // after inserting/finding Article documents.
       news.push({
@@ -101,12 +156,13 @@ module.exports = async () => {
     // into final News documents with ObjectId references.
     const newsDocs = news.map((n) => ({
       title: n.title,
-      reference_articles_id: (n.articleUrls || [])
+      reference_articles: (n.articleUrls || [])
         .map((u) => urlToId[u])
         .filter(Boolean),
       data: n.data,
     }));
 
+    await News.deleteMany();
     await News.insertMany(newsDocs);
     console.log('Daily cron job completed successfully.');
   } catch (error) {

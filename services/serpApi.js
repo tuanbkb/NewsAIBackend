@@ -22,19 +22,25 @@ this.serpApiInstance.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-exports.getTrendingNows = async (hours, numberOfTrends) => {
+exports.getTrendingNows = async (hours) => {
   try {
-    const numberParam = numberOfTrends ? numberOfTrends - 1 : 19;
     const response = await this.serpApiInstance.get('/search', {
       params: {
         hl: 'vi',
         geo: 'VN',
         hours,
         engine: 'google_trends_trending_now',
-        json_restrictor: `trending_searches[0:${numberParam}].{query,search_volume,start_timestamp,end_timestamp,increase_percentage,news_page_token}`,
+        json_restrictor: `trending_searches[].{query,search_volume,start_timestamp,end_timestamp,increase_percentage,news_page_token}`,
       },
     });
-    return response.data.trending_searches;
+    const trendingSearches = response.data.trending_searches;
+    const sortedSearches = trendingSearches.sort((a, b) => {
+      const startA = a.start_timestamp;
+      const startB = b.start_timestamp;
+      return startB - startA;
+    });
+
+    return sortedSearches.slice(0, 50);
   } catch (error) {
     console.error(error);
     throw new AppError('Error fetching trending keywords from SerpAPI', 400);

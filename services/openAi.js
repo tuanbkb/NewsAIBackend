@@ -1,5 +1,6 @@
 const axios = require('axios');
 const AppError = require('../utils/appError');
+const parseOpenAIJson = require('../utils/openAIJsonParse');
 
 const openAiInstance = axios.create({
   baseURL: 'https://api.openai.com/v1',
@@ -41,6 +42,48 @@ exports.getChatCompletion = async (
   }
 };
 
+exports.filterTrends = async (trends) => {
+  try {
+    const prompt = `You are a data filtering assistant specialized in trending topic analysis.
+
+    You will receive input data in JSON format — an array of trending topic objects from the Google Trending Now API.
+    Each object may include fields such as "query", "search_volume", "start_timestamp", "end_timestamp", etc.
+
+    Your tasks:
+    1. Group topic objects with highly similar query params (e.g. "iPhone 16 Pro", "Apple iPhone 16", "New iPhone 16").
+    2. From each group, keep only one representative topic — the one with the clearest and most general query.
+     - Keep its entire object (not just the query).
+    3. Remove all topics related to **lotteries, lottery results, or gambling**  
+     (examples: "Powerball", "Mega Millions", "Kết quả xổ số", "Vietlott", "Xổ số miền Bắc", etc.).
+    4. Do **not** modify or add any data fields.
+    5. Return only a valid **JSON array** of the remaining topic objects, preserving all their original fields and values.
+
+    ### Example
+    **Input:**
+    [
+    {"query": "Apple iPhone 16 Pro", "search_volume": "20000", "start_timestamp": 1750384300},
+    {"query": "iPhone 16", "search_volume": "15000", "start_timestamp": 1750384310},
+    {"query": "Bitcoin price", "search_volume": "10000", "start_timestamp": 1750384320},
+    {"query": "Kết quả xổ số miền Bắc", "search_volume": "8000", "start_timestamp": 1750384330}
+    ]
+
+    **Correct Output (preserve original objects, remove duplicates/lottery):**
+    [
+    {"query": "iPhone 16", "search_volume": "15000", "start_timestamp": 1750384310},
+    {"query": "Bitcoin price", "search_volume": "10000", "start_timestamp": 1750384320}
+    ]
+
+    Now process the following input:
+    ${JSON.stringify(trends, null, 2)}`;
+    const response = await this.getChatCompletion(prompt);
+    const filtered = parseOpenAIJson(response);
+    return filtered;
+  } catch (error) {
+    console.error(error);
+    throw new AppError('Error filtering trends from OpenAI', 400);
+  }
+};
+
 exports.getNewsFromArticlesSummary = async (articlesSummary) => {
   try {
     const prompt = `You are a professional Vietnamese news editor.
@@ -69,7 +112,7 @@ Make sure the output is valid JSON and does not include any additional explanati
 Here are the input articles:
 ${JSON.stringify(articlesSummary, null, 2)}`;
     const response = await this.getChatCompletion(prompt);
-    const newsArticle = JSON.parse(response);
+    const newsArticle = parseOpenAIJson(response);
     return newsArticle;
   } catch (error) {
     throw new AppError('Error generating news from articles summary', 400);
@@ -96,7 +139,7 @@ Requirements:
 
 Input:
 """
-${articleData}
+${JSON.stringify(articleData, null, 2)}
 """
 
 Output:

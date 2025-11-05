@@ -30,11 +30,15 @@ const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
 });
 
-// cron.schedule('0 */6 * * *', () => {
-//   runDailyCron().catch((err) => {
-//     console.error('Scheduled daily cron job failed:', err);
-//   });
+// runDailyCron().catch((err) => {
+//   console.error('Initial daily cron job failed:', err);
 // });
+
+cron.schedule('0 */6 * * *', () => {
+  runDailyCron().catch((err) => {
+    console.error('Scheduled daily cron job failed:', err);
+  });
+});
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');
