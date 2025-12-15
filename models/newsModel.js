@@ -16,6 +16,10 @@ const newsSchema = new mongoose.Schema({
     trim: true,
     required: [true, 'A news article must have data'],
   },
+  category_ids: {
+    type: [Number],
+    required: [true, 'A news article must have categories'],
+  },
   createdAt: {
     type: Date,
     default: Date.now(),

@@ -30,7 +30,7 @@ exports.getTrendingNows = async (hours) => {
         geo: 'VN',
         hours,
         engine: 'google_trends_trending_now',
-        json_restrictor: `trending_searches[].{query,search_volume,start_timestamp,end_timestamp,increase_percentage,news_page_token}`,
+        json_restrictor: `trending_searches[].{query,search_volume,start_timestamp,end_timestamp,increase_percentage,categories[],news_page_token}`,
       },
     });
     const trendingSearches = response.data.trending_searches;
@@ -40,7 +40,15 @@ exports.getTrendingNows = async (hours) => {
       return startB - startA;
     });
 
-    return sortedSearches.slice(0, 50);
+    // Map categories to extract only category IDs
+    sortedSearches.forEach((search) => {
+      if (Array.isArray(search.categories)) {
+        search.category_ids = search.categories.map((cat) => cat.id);
+        delete search.categories;
+      }
+    });
+
+    return sortedSearches.slice(0, 75);
   } catch (error) {
     console.error(error);
     throw new AppError('Error fetching trending keywords from SerpAPI', 400);
@@ -53,7 +61,7 @@ exports.getNewsFromTrends = async (newsPageToken) => {
       params: {
         page_token: newsPageToken,
         engine: 'google_trends_news',
-        json_restrictor: 'news[0:4].{title,link,source,thumbnail}',
+        json_restrictor: 'news[0:9].{title,link,source,thumbnail}',
       },
     });
     return response.data.news;

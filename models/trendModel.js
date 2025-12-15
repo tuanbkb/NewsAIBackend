@@ -22,6 +22,10 @@ const trendSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'A trend must have an increase percentage'],
   },
+  category_ids: {
+    type: [Number],
+    required: [true, 'A trend must have categories'],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

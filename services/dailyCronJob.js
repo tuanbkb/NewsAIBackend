@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
+const pLimit = require('p-limit');
 const serpApi = require('./serpApi');
 const openAi = require('./openAi');
 const firecrawl = require('./firecrawl');
@@ -9,6 +10,65 @@ const Trend = require('../models/trendModel');
 const News = require('../models/newsModel');
 const retry = require('../utils/retryFunc');
 const softFilterTrend = require('../utils/softFilterTrend');
+const textEmbed = require('./textEmbed');
+
+// Helper to process articles for a single trend with concurrency control
+async function processArticlesForTrend(
+  newsItemList,
+  newsArticlesToSaveArr,
+  articleLimit,
+) {
+  const newsArticles = [];
+  const summaries = [];
+
+  // Process articles with controlled concurrency
+  const articlePromises = (newsItemList || []).map((newsItem) =>
+    articleLimit(async () => {
+      const url = newsItem.link;
+
+      // Check if the article already exists
+      const existingArticle = await Article.findOne({ url });
+      if (existingArticle || newsArticlesToSaveArr.find((a) => a.url === url)) {
+        console.log(`Article already exists: ${url}`);
+        return { summary: existingArticle, article: null };
+      }
+
+      try {
+        const scrapedData = await retry(() => firecrawl.scrapeArticles(url));
+        const { markdown, metadata } = scrapedData;
+        const softFilteredMarkdown = softFilterArticle(markdown);
+        const articleData = {
+          title: newsItem.title,
+          data: softFilteredMarkdown,
+        };
+        const summary = await retry(() =>
+          openAi.getArticleSummary(articleData),
+        );
+        const sourceLogoUrl = metadata.favicon || metadata.icon || undefined;
+        const newArticle = {
+          title: newsItem.title,
+          source: newsItem.source,
+          source_logo_url: sourceLogoUrl,
+          url,
+          thumbnail_url: newsItem.thumbnail,
+          summary,
+        };
+        return { summary: newArticle, article: newArticle };
+      } catch (err) {
+        console.error(`Skipping article due to error: ${url}`, err);
+        return { summary: null, article: null };
+      }
+    }),
+  );
+
+  const results = await Promise.all(articlePromises);
+  results.forEach((result) => {
+    if (result.summary) summaries.push(result.summary);
+    if (result.article) newsArticles.push(result.article);
+  });
+
+  return { newsArticles, summaries };
+}
 
 module.exports = async () => {
   try {
@@ -40,103 +100,105 @@ module.exports = async () => {
     const newsArticlesToSave = [];
     const news = [];
 
-    for (const item of trendingKeywords || []) {
-      const newsPageToken = item.news_page_token;
-      let newsItemList;
-      try {
-        newsItemList = await retry(() =>
-          serpApi.getNewsFromTrends(newsPageToken),
-        );
-      } catch (err) {
-        // Skip this trend if we cannot fetch its news page after retries
-        console.error(
-          `Skipping trend due to fetch error: ${item.keyword || newsPageToken}`,
-          err,
-        );
-        continue;
-      }
-      const newsArticles = [];
-      const summaries = [];
-      for (const newsItem of newsItemList || []) {
-        const url = newsItem.link;
+    // Concurrency limits for 2GB RAM server:
+    // - Max 2 trends at once
+    // - Max 2 articles per trend
+    // Total: ~4 concurrent operations (safe for 2GB RAM)
+    const trendLimit = pLimit(2);
+    const articleLimit = pLimit(2);
 
-        // Check if the article already exists
-        const existingArticle = await Article.findOne({ url });
-        if (existingArticle || newsArticlesToSave.find((a) => a.url === url)) {
-          console.log(`Article already exists: ${url}`);
-          summaries.push(existingArticle);
-        } else {
-          try {
-            const scrapedData = await retry(() =>
-              firecrawl.scrapeArticles(url),
-            );
-            const { markdown, metadata } = scrapedData;
-            const softFilteredMarkdown = softFilterArticle(markdown);
-            const articleData = {
-              title: newsItem.title,
-              data: softFilteredMarkdown,
-            };
-            const summary = await retry(() =>
-              openAi.getArticleSummary(articleData),
-            );
-            // Get source logo URL from metadata if available
-            const sourceLogoUrl =
-              metadata.favicon || metadata.icon || undefined;
-            const newArticle = {
-              title: newsItem.title,
-              source: newsItem.source,
-              source_logo_url: sourceLogoUrl,
-              url,
-              thumbnail_url: newsItem.thumbnail,
-              summary,
-            };
-            newsArticles.push(newArticle);
-            summaries.push(newArticle);
-          } catch (err) {
-            console.error(`Skipping article due to error: ${url}`, err);
-          }
+    // Process trends with controlled concurrency
+    const trendPromises = (trendingKeywords || []).map((item) =>
+      trendLimit(async () => {
+        const newsPageToken = item.news_page_token;
+        let newsItemList;
+        try {
+          newsItemList = await retry(() =>
+            serpApi.getNewsFromTrends(newsPageToken),
+          );
+        } catch (err) {
+          console.error(
+            `Skipping trend due to fetch error: ${item.keyword || newsPageToken}`,
+            err,
+          );
+          return null;
         }
-      }
 
-      newsArticlesToSave.push(...newsArticles);
-      let newsResult;
-      try {
-        newsResult = await retry(() =>
-          openAi.getNewsFromArticlesSummary(
-            summaries.map((a) => ({ title: a.title, summary: a.summary })),
-          ),
+        const { newsArticles, summaries } = await processArticlesForTrend(
+          newsItemList,
+          newsArticlesToSave,
+          articleLimit,
         );
-      } catch (err) {
-        // Skip this trend if summarization fails after retries
-        console.error(
-          `Skipping trend due to summarization error: ${item.keyword || newsPageToken}`,
-          err,
+
+        if (newsArticles.length === 0 && summaries.length === 0) {
+          console.log(`No articles found for trend: ${item.query}`);
+          return null;
+        }
+
+        // Filter summaries using text embedding
+        const filteredSummaries = await retry(() =>
+          textEmbed.getFilterResult(summaries),
         );
-        continue;
-      }
-      // Return article URLs for now — we'll resolve them to ObjectIds
-      // after inserting/finding Article documents.
-      news.push({
-        title: newsResult.title,
-        data: newsResult.data,
-        articleUrls: newsArticles.map((a) => a.url),
-      });
-    }
+        const filteredUrls = new Set(filteredSummaries.map((s) => s.url));
+        const filteredNewsArticles = newsArticles.filter((article) =>
+          filteredUrls.has(article.url),
+        );
+
+        newsArticlesToSave.push(...filteredNewsArticles);
+
+        let newsResult;
+        try {
+          newsResult = await retry(() =>
+            openAi.getNewsFromArticlesSummary(
+              summaries.map((a) => ({ title: a.title, summary: a.summary })),
+            ),
+          );
+        } catch (err) {
+          console.error(
+            `Skipping trend due to summarization error: ${item.query}`,
+            err,
+          );
+          return null;
+        }
+
+        return {
+          title: newsResult.title,
+          data: newsResult.data,
+          articleUrls: summaries.map((a) => a.url),
+          categoryIds: item.category_ids || [],
+          trendQuery: item.query,
+        };
+      }),
+    );
+
+    // Wait for all trends to complete and filter out null results
+    const trendResults = (await Promise.all(trendPromises)).filter(Boolean);
+    news.push(...trendResults);
 
     // Save all new things to the database
-    // Persist trends
-    await Trend.deleteMany();
-    await Trend.insertMany(trendingKeywords || []);
+    // Upsert trends (update if exists based on unique 'query', insert if new)
 
-    // Insert any new articles collected during scraping. Use ordered: false
-    // to continue inserting other docs if one fails (e.g., duplicate key).
+    if (trendingKeywords && trendingKeywords.length > 0) {
+      const trendOps = trendingKeywords.map((trend) => ({
+        updateOne: {
+          filter: { query: trend.query },
+          update: { $set: trend },
+          upsert: true,
+        },
+      }));
+      await Trend.bulkWrite(trendOps);
+    }
+
+    // Upsert articles (update if URL exists, insert if new) to avoid duplicates
     if (newsArticlesToSave.length > 0) {
-      try {
-        await Article.insertMany(newsArticlesToSave, { ordered: false });
-      } catch (err) {
-        // ignore duplicate key errors here — we'll fetch existing docs below
-        console.warn('Some articles may already exist, continuing.');
-      }
+      const articleOps = newsArticlesToSave.map((article) => ({
+        updateOne: {
+          filter: { url: article.url },
+          update: { $set: article },
+          upsert: true,
+        },
+      }));
+      await Article.bulkWrite(articleOps);
     }
 
     // Build a map from URL -> _id for all article URLs referenced by news
@@ -160,10 +222,29 @@ module.exports = async () => {
         .map((u) => urlToId[u])
         .filter(Boolean),
       data: n.data,
+      category_ids: n.categoryIds || [],
     }));
 
-    await News.deleteMany();
-    await News.insertMany(newsDocs);
+    // Check for duplicates in bulk by querying existing titles
+    const titles = newsDocs.map((n) => n.title);
+    const existingNews = await News.find(
+      { title: { $in: titles } },
+      { title: 1 },
+    ).lean();
+    const existingTitles = new Set(existingNews.map((n) => n.title));
+
+    // Filter out duplicates
+    const newsToInsert = newsDocs.filter((n) => {
+      if (existingTitles.has(n.title)) {
+        console.log(`News already exists: ${n.title}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (newsToInsert.length > 0) {
+      await News.insertMany(newsToInsert);
+    }
     console.log('Daily cron job completed successfully.');
   } catch (error) {
     console.error('Error in daily cron job:', error);
