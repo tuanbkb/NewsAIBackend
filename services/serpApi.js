@@ -48,7 +48,7 @@ exports.getTrendingNows = async (hours) => {
       }
     });
 
-    return sortedSearches.slice(0, 75);
+    return sortedSearches.slice(0, 50);
   } catch (error) {
     console.error(error);
     throw new AppError('Error fetching trending keywords from SerpAPI', 400);

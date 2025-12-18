@@ -85,6 +85,28 @@ module.exports = async () => {
 
     trendingKeywords = softFilterTrend(trendingKeywords);
 
+    // Remove trends that were saved less than 1 day ago
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const queries = trendingKeywords.map((t) => t.query);
+    const recentTrends = await Trend.find(
+      {
+        query: { $in: queries },
+        createdAt: { $gte: oneDayAgo },
+      },
+      { query: 1 },
+    ).lean();
+    const recentQueries = new Set(recentTrends.map((t) => t.query));
+    trendingKeywords = trendingKeywords.filter(
+      (t) => !recentQueries.has(t.query),
+    );
+
+    if (trendingKeywords.length === 0) {
+      console.log(
+        'No new trends to process (all trends are less than 1 day old).',
+      );
+      return;
+    }
+
     // Filter trends using OpenAI
     // try {
     //   trendingKeywords = await retry(() =>

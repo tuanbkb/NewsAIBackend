@@ -30,9 +30,9 @@ const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
 });
 
-runDailyCron().catch((err) => {
-  console.error('Initial daily cron job failed:', err);
-});
+// runDailyCron().catch((err) => {
+//   console.error('Initial daily cron job failed:', err);
+// });
 
 // cron.schedule('0 */6 * * *', () => {
 //   runDailyCron().catch((err) => {
