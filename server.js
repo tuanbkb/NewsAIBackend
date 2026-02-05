@@ -5,6 +5,7 @@ const app = require('./app');
 const runDailyCron = require('./services/dailyCronJob');
 const { getPopularNews } = require('./services/googleNews');
 const { resolveGoogleNewsUrl } = require('./services/playwright');
+const GoogleNews = require('./models/googleNewsModel');
 
 process.on('uncaughtException', (err) => {
   console.log('💥 UNCAUGHT EXCEPTION! Shutting down...');
@@ -44,7 +45,7 @@ const server = app.listen(port, () => {
 //     console.error('Scheduled daily cron job failed:', err);
 //   });
 // });
-// getPopularNews();
+getPopularNews();
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');

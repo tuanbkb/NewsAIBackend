@@ -28,7 +28,28 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
     );
     const parser = new XMLParser();
     const parseRes = parser.parse(res.data);
-    const itemList = parseRes.rss.channel.item;
+    let itemList = parseRes.rss.channel.item;
+
+    // Check for latest saved article to avoid duplicates
+    const latest = await GoogleNews.findOne().sort({ createdAt: 1 }).exec();
+    console.log(latest);
+
+    if (latest) {
+      const latestEmbeddedUrl = latest.embedded_link;
+      const latestIndex = itemList.findIndex(
+        (item) => item.link === latestEmbeddedUrl,
+      );
+      if (latestIndex !== -1) {
+        itemList = itemList.splice(0, latestIndex);
+        console.log(
+          `Found latest article in feed. Processing ${itemList.length} new articles.`,
+        );
+      } else {
+        console.log(
+          `Latest article not found in feed. Processing all ${itemList.length} articles.`,
+        );
+      }
+    }
 
     // Collect all URLs to resolve
     const allUrls = [];
@@ -71,6 +92,8 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
         pub_date: dayjs(item.pubDate).toISOString(),
         source: item.source._url,
         references: links,
+        createdAt: new Date(Date.now() + itemIndex),
+        updatedAt: new Date(Date.now() + itemIndex),
       };
     });
 
