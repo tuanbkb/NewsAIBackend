@@ -27,22 +27,26 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
       timeout: 15000,
     });
 
-    // Google News sẽ redirect bằng JS
-    await page.waitForURL(
-      (url) => {
-        console.log('Current URL during wait:', url);
-        return !url.origin.includes('news.google.com');
-      },
-      {
-        timeout: 10000,
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await page.waitForURL((url) => !url.origin.includes('news.google.com'), {
+      timeout: 10000,
+      waitUntil: 'domcontentloaded',
+    });
 
     const finalUrl = page.url();
+    console.log(finalUrl);
     return finalUrl;
+  } catch (error) {
+    console.error('Error resolving Google News URL:', error);
+    return '';
   } finally {
     await page.close();
     await context.close();
+  }
+};
+
+exports.closeBrowser = async () => {
+  if (browser) {
+    await browser.close();
+    browser = null;
   }
 };
