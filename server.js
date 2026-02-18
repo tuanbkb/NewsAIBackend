@@ -4,7 +4,11 @@ const cron = require('node-cron');
 const app = require('./app');
 const runDailyCron = require('./services/dailyCronJob');
 const { getPopularNews } = require('./services/googleNews');
-const { resolveGoogleNewsUrl } = require('./services/playwright');
+const {
+  resolveGoogleNewsUrl,
+  getNewsContent,
+  getNewsContentByTextLength,
+} = require('./services/playwright');
 const GoogleNews = require('./models/googleNewsModel');
 
 process.on('uncaughtException', (err) => {
@@ -45,7 +49,41 @@ const server = app.listen(port, () => {
 //     console.error('Scheduled daily cron job failed:', err);
 //   });
 // });
-getPopularNews();
+// getPopularNews();
+// const getUniqueUrl = async () => {
+//   const articles = await GoogleNews.find().exec();
+//   const urlSet = new Set();
+//   articles.forEach((article) => {
+//     const refs = article.references || [];
+//     refs.forEach((ref) => {
+//       if (!ref) return '';
+//       const baseUrl = ref.split('/')[2];
+//       urlSet.add(baseUrl);
+//     });
+//   });
+//   console.log(`Total unique URLs: ${urlSet.size}`);
+//   console.log(Array.from(urlSet));
+//   return urlSet;
+// };
+
+// getUniqueUrl();
+// getNewsContent(
+//   'https://vov.vn/xa-hoi/khao-sat-nang-luc-tieng-anh-cua-giao-vien-buoc-khoi-dong-cho-muc-tieu-song-ngu-post1267223.vov',
+//   null,
+//   'div.article-content p:not(div.article__inner-story p)',
+// ).then((content) => {
+//   console.log(content);
+// });
+
+const test = async () => {
+  const res = await resolveGoogleNewsUrl(
+    'https://news.google.com/rss/articles/CBMimAFBVV95cUxPNHhvaVNUUlFKZ0N3cWllM2hlWE40QldmTDFVMmt4ODh6SDB6aHFLWGFOMGdkRHdfQjJCMmFDNnNheHI1N01US3hSa0pXdnpDZWMzWVNrWS1oaU15emhFUjJqWWRZNGc2QzhjX1c0azcxOXBzcDRPbEJ3R0VwU2JoaVNhem9OczBTd1g2NzVENWctOGtLWVhjVg?oc=5',
+  );
+
+  console.log(res.finalUrl, res.content);
+};
+
+test();
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');
