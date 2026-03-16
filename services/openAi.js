@@ -11,7 +11,7 @@ const openAiInstance = axios.create({
 
 openAiInstance.interceptors.request.use(
   (config) => {
-    const key = process.env.OPENAI_API_KEY;
+    const key = process.env.PERSONAL_OPENAI_API_KEY;
     if (!key) {
       throw new AppError(
         'OpenAI API key is not set in environment variables',
@@ -123,23 +123,17 @@ exports.getArticleSummary = async (articleData) => {
   try {
     const prompt = `You are a professional news editor.  
 Your task is to create a short, factual summary from the following article content in its original language.
-The input article is provided in JSON format as follows:
-{
-  "title": string,   // title of the article
-  "data": string     // full text content of the article
-}
-The data comes from a web crawler and may contain unwanted metadata such as author names, publication date, category tags, or unrelated footer text.
+The input article is provided as a string, including the article's content.
 
 Requirements:
-- Clean the input automatically by ignoring metadata, ads, or navigation text.
 - Focus only on the actual news content: what happened, who was involved, when, and why it matters.
 - Keep the tone neutral and objective.
 - Write a concise summary of 3–5 sentences.
-- Do not include any metadata, HTML tags, or external links in the output.
+- Do not include anything besides the summary result itself.
 
 Input:
 """
-${JSON.stringify(articleData, null, 2)}
+${articleData}
 """
 
 Output:

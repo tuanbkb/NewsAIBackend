@@ -21,7 +21,22 @@ const googleNewsSchema = new mongoose.Schema(
       trim: true,
     },
     references: {
-      type: [String],
+      type: [
+        {
+          url: {
+            type: String,
+            trim: true,
+          },
+          content: {
+            type: String,
+            trim: true,
+          },
+          summary: {
+            type: String,
+            trim: true,
+          },
+        },
+      ],
       default: [],
     },
   },

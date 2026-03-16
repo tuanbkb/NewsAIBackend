@@ -40,10 +40,6 @@ const server = app.listen(port, () => {
 // runDailyCron().catch((err) => {
 //   console.error('Initial daily cron job failed:', err);
 // });
-// getPopularNews().then((res) => {
-//   console.log(res);
-// });
-
 // cron.schedule('0 */6 * * *', () => {
 //   runDailyCron().catch((err) => {
 //     console.error('Scheduled daily cron job failed:', err);
@@ -65,25 +61,11 @@ const server = app.listen(port, () => {
 //   console.log(Array.from(urlSet));
 //   return urlSet;
 // };
-
-// getUniqueUrl();
-// getNewsContent(
-//   'https://vov.vn/xa-hoi/khao-sat-nang-luc-tieng-anh-cua-giao-vien-buoc-khoi-dong-cho-muc-tieu-song-ngu-post1267223.vov',
-//   null,
-//   'div.article-content p:not(div.article__inner-story p)',
-// ).then((content) => {
-//   console.log(content);
-// });
-
-const test = async () => {
-  const res = await resolveGoogleNewsUrl(
-    'https://news.google.com/rss/articles/CBMimAFBVV95cUxPNHhvaVNUUlFKZ0N3cWllM2hlWE40QldmTDFVMmt4ODh6SDB6aHFLWGFOMGdkRHdfQjJCMmFDNnNheHI1N01US3hSa0pXdnpDZWMzWVNrWS1oaU15emhFUjJqWWRZNGc2QzhjX1c0azcxOXBzcDRPbEJ3R0VwU2JoaVNhem9OczBTd1g2NzVENWctOGtLWVhjVg?oc=5',
-  );
-
-  console.log(res.finalUrl, res.content);
-};
-
-test();
+resolveGoogleNewsUrl(
+  'https://baotintuc.vn/the-gioi/my-mo-cac-cuoc-dieu-tra-thuong-mai-moi-nham-khoi-phuc-ap-luc-thue-quan-20260312160051430.htm',
+).then((res) => {
+  console.log(res);
+});
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');

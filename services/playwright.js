@@ -1,4 +1,8 @@
 const { chromium } = require('playwright');
+const { JSDOM } = require('jsdom');
+const { Readability } = require('@mozilla/readability');
+const retry = require('../utils/retryFunc');
+const { getArticleSummary } = require('./openAi');
 
 let browser;
 
@@ -12,11 +16,7 @@ exports.getBrowser = async () => {
   return browser;
 };
 
-exports.resolveGoogleNewsUrl = async (
-  googleNewsUrl,
-  minTextLength = 50,
-  minWordCount = 10,
-) => {
+exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
   const browserInstance = await this.getBrowser();
   const context = await browserInstance.newContext({
     userAgent:
@@ -31,38 +31,71 @@ exports.resolveGoogleNewsUrl = async (
       timeout: 15000,
     });
 
-    await page.waitForURL((url) => !url.origin.includes('news.google.com'), {
-      timeout: 10000,
-      waitUntil: 'domcontentloaded',
-    });
+    await page.waitForURL(
+      (url) =>
+        !url.origin.includes('news.google.com') ||
+        url.origin.includes('stories'),
+      {
+        timeout: 10000,
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     const finalUrl = page.url();
+    if (finalUrl.includes('stories')) {
+      return null;
+    }
 
-    const content = await page.evaluate(
-      ({ minTextLength: minTxtLng, minWordCount: minWrdCnt }) => {
-        const paragraphs = document.querySelectorAll('p');
-        const filteredParagraphs = [];
+    // page.on('console', (msg) => console.log('Browser:', msg.text()));
 
-        paragraphs.forEach((p) => {
-          const text = p.innerText.trim();
-          if (text.length === 0) return;
+    const pageContent = await page.content();
+    const dom = new JSDOM(pageContent, { finalUrl });
 
-          const wordCount = text.split(/\s+/).length;
-          const textLength = text.length;
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
 
-          if (textLength >= minTxtLng && wordCount >= minWrdCnt) {
-            filteredParagraphs.push(text);
-          }
-        });
+    if (!article) return null;
 
-        return filteredParagraphs.join('\n\n');
-      },
-      { minTextLength, minWordCount },
-    );
-    return { finalUrl, content: content.toString() };
+    const content = article.textContent.trim();
+    console.log('Extracted content: ', article.textContent);
+
+    // const content = await page.evaluate(
+    //   ({ minTextLength: minTxtLng, minWordCount: minWrdCnt }) => {
+    //     const paragraphs = document.querySelectorAll('p');
+    //     const filteredParagraphs = [];
+
+    //     paragraphs.forEach((p, index) => {
+    //       const text = Array.from(p.childNodes)
+    //         .filter((n) => n.nodeType === Node.TEXT_NODE)
+    //         .map((n) => n.textContent)
+    //         .join('')
+    //         .trim();
+
+    //       if (text.length === 0) return;
+
+    //       const wordCount = text.split(/\s+/).length;
+    //       const textLength = text.length;
+
+    //       if (textLength >= minTxtLng && wordCount >= minWrdCnt) {
+    //         filteredParagraphs.push(text);
+    //       }
+    //     });
+
+    // filteredParagraphs.forEach((para, idx) => {
+    //   console.log(`Paragraph ${idx + 1}: ${para}`);
+    // });
+
+    //     return filteredParagraphs.join('\n\n');
+    //   },
+    //   { minTextLength, minWordCount },
+    // );
+    const strContent = content.toString();
+    // const summary = await retry(() => getArticleSummary(strContent));
+    const summary = '';
+    return { url: finalUrl, content: strContent, summary };
   } catch (error) {
     console.error('Error resolving Google News URL:', error);
-    return { finalUrl: googleNewsUrl, content: '' };
+    return { url: googleNewsUrl, content: '', summary: '' };
   } finally {
     await page.close();
     await context.close();
