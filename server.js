@@ -61,12 +61,6 @@ const server = app.listen(port, () => {
 //   console.log(Array.from(urlSet));
 //   return urlSet;
 // };
-resolveGoogleNewsUrl(
-  'https://baotintuc.vn/the-gioi/my-mo-cac-cuoc-dieu-tra-thuong-mai-moi-nham-khoi-phuc-ap-luc-thue-quan-20260312160051430.htm',
-).then((res) => {
-  console.log(res);
-});
-
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');
   console.log(err.name, err.message);

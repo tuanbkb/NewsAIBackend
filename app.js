@@ -7,6 +7,7 @@ const newsRouter = require('./routes/newsRoutes');
 const articleRouter = require('./routes/articleRoutes');
 const trendRouter = require('./routes/trendRoutes');
 const googleNewsRouter = require('./routes/googleNewsRoutes');
+const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/v1/news', newsRouter);
 app.use('/api/v1/articles', articleRouter);
 app.use('/api/v1/trends', trendRouter);
 app.use('/api/v1/google-news', googleNewsRouter);
+app.use('/api/v1/users', userRouter);
 
 // Handling unhandled routes
 app.use((req, res, next) => {
