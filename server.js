@@ -10,6 +10,7 @@ const {
   getNewsContentByTextLength,
 } = require('./services/playwright');
 const GoogleNews = require('./models/googleNewsModel');
+const getBaseData = require('./utils/getBaseData');
 
 process.on('uncaughtException', (err) => {
   console.log('💥 UNCAUGHT EXCEPTION! Shutting down...');
@@ -61,6 +62,8 @@ const server = app.listen(port, () => {
 //   console.log(Array.from(urlSet));
 //   return urlSet;
 // };
+getBaseData();
+
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');
   console.log(err.name, err.message);
