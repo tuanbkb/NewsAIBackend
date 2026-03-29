@@ -6,7 +6,7 @@ const globalErrorHandler = require('./controllers/errorController');
 const newsRouter = require('./routes/newsRoutes');
 const articleRouter = require('./routes/articleRoutes');
 const trendRouter = require('./routes/trendRoutes');
-const googleNewsRouter = require('./routes/googleNewsRoutes');
+const googleNewsRouter = require('./routes/newsRoutes');
 const userRouter = require('./routes/userRoutes');
 
 const app = express();

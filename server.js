@@ -4,13 +4,7 @@ const cron = require('node-cron');
 const app = require('./app');
 const runDailyCron = require('./services/dailyCronJob');
 const { getPopularNews } = require('./services/googleNews');
-const {
-  resolveGoogleNewsUrl,
-  getNewsContent,
-  getNewsContentByTextLength,
-} = require('./services/playwright');
-const GoogleNews = require('./models/googleNewsModel');
-const getBaseData = require('./utils/getBaseData');
+const { resolveGoogleNewsUrl } = require('./services/playwright');
 
 process.on('uncaughtException', (err) => {
   console.log('💥 UNCAUGHT EXCEPTION! Shutting down...');
@@ -37,32 +31,6 @@ const port = process.env.PORT || 5104;
 const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
 });
-
-// runDailyCron().catch((err) => {
-//   console.error('Initial daily cron job failed:', err);
-// });
-// cron.schedule('0 */6 * * *', () => {
-//   runDailyCron().catch((err) => {
-//     console.error('Scheduled daily cron job failed:', err);
-//   });
-// });
-// getPopularNews();
-// const getUniqueUrl = async () => {
-//   const articles = await GoogleNews.find().exec();
-//   const urlSet = new Set();
-//   articles.forEach((article) => {
-//     const refs = article.references || [];
-//     refs.forEach((ref) => {
-//       if (!ref) return '';
-//       const baseUrl = ref.split('/')[2];
-//       urlSet.add(baseUrl);
-//     });
-//   });
-//   console.log(`Total unique URLs: ${urlSet.size}`);
-//   console.log(Array.from(urlSet));
-//   return urlSet;
-// };
-getBaseData();
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');

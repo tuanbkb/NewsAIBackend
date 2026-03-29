@@ -1,31 +1,60 @@
-const mongoose = require('mongoose');
+const { default: mongoose } = require('mongoose');
 
 const newsSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       trim: true,
-      required: [true, 'A news article must have a title'],
+      required: [true, 'A Google News article must have a title'],
     },
-    reference_articles: {
-      type: [mongoose.Schema.Types.ObjectId],
-      ref: 'Article',
-      required: [true, 'A news article must have reference articles'],
-    },
-    data: {
+    content: {
       type: String,
       trim: true,
-      required: [true, 'A news article must have data'],
+      required: [true, 'A Google News article must have content'],
     },
-    category_ids: {
-      type: [Number],
-      required: [true, 'A news article must have categories'],
+    embedded_link: {
+      type: String,
+      trim: true,
+      required: [true, 'A Google News article must have an embedded link'],
+    },
+    pub_date: {
+      type: Date,
+      required: [true, 'A Google News article must have a publication date'],
+    },
+    source: {
+      type: String,
+      trim: true,
+    },
+    references: {
+      type: [
+        {
+          url: {
+            type: String,
+            trim: true,
+          },
+          summary: {
+            type: String,
+            trim: true,
+          },
+          thumbnail: {
+            type: String,
+            trim: true,
+          },
+        },
+      ],
+
+      default: [],
+    },
+    media: {
+      type: [String],
+      trim: true,
     },
   },
   {
     timestamps: true,
   },
 );
+
 const News = mongoose.model('News', newsSchema);
 
 module.exports = News;

@@ -7,6 +7,22 @@ const router = express.Router();
 router.post('/signup', authController.signUp);
 router.post('/signin', authController.signIn);
 
+router.get(
+  '/me/favorites',
+  authController.protect,
+  userController.getMyFavoriteNews,
+);
+router.post(
+  '/me/favorites/:newsId',
+  authController.protect,
+  userController.addNewsToFavorites,
+);
+router.delete(
+  '/me/favorites/:newsId',
+  authController.protect,
+  userController.removeNewsFromFavorites,
+);
+
 router
   .route('/')
   .get(userController.getAllUsers)

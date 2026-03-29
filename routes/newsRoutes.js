@@ -1,18 +1,21 @@
 const express = require('express');
 const newsController = require('../controllers/newsController');
+const authController = require('../controllers/authController');
 
 const router = express.Router();
 
 router
   .route('/')
-  .post(newsController.createNews)
-  .get(newsController.getAllNews)
-  .delete(newsController.deleteAllNews);
+  .post(newsController.createGoogleNews)
+  .get(authController.protect, newsController.getAllGoogleNews)
+  .delete(newsController.deleteAllGoogleNews);
+
+router.route('/crawl').post(newsController.crawlGoogleNews);
 
 router
   .route('/:id')
-  .get(newsController.getNewsById)
-  .patch(newsController.updateNews)
-  .delete(newsController.deleteNews);
+  .get(newsController.getGoogleNewsById)
+  .patch(newsController.updateGoogleNews)
+  .delete(newsController.deleteGoogleNews);
 
 module.exports = router;

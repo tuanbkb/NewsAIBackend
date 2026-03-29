@@ -88,11 +88,7 @@ exports.getNewsFromArticlesSummary = async (articlesSummary) => {
   try {
     const prompt = `You are a professional Vietnamese news editor.
 
-You will receive a list of articles in JSON format. Each object includes:
-{
-  "title": string,           // title of the article
-  "summary": string          // summary of the article
-}
+You will receive a list of articles in JSON format. Each article is a short summary of a news story, containing key facts and insights.
 
 Your task:
 1. Read all the summaries carefully.
@@ -101,19 +97,12 @@ Your task:
 4. Keep your tone formal, neutral, and journalistic.
 5. Do not copy or translate each summary literally — synthesize them into one unified piece.
 6. Write naturally in **Vietnamese**, suitable for a newspaper.
-7. Return your result strictly as valid JSON in the format below:
+7. Return your result strictly as a string of the news article content, without any additional explanation or formatting.
 
-{
-  "title": string,   // short Vietnamese title summarizing the topic
-  "data": string     // Vietnamese article body, 3–5 short paragraphs
-}
-
-Make sure the output is valid JSON and does not include any additional explanation or markdown.
 Here are the input articles:
 ${JSON.stringify(articlesSummary, null, 2)}`;
     const response = await this.getChatCompletion(prompt);
-    const newsArticle = parseOpenAIJson(response);
-    return newsArticle;
+    return response;
   } catch (error) {
     throw new AppError('Error generating news from articles summary', 400);
   }

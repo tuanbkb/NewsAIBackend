@@ -17,12 +17,16 @@ exports.signUp = catchAsync(async (req, res, next) => {
   });
 
   const token = signToken(newUser._id);
+  const returnUser = newUser.toObject();
+
+  delete returnUser.password;
+  delete returnUser.__v;
 
   res.status(201).json({
     status: 'success',
     code: 201,
     data: {
-      user: newUser,
+      user: returnUser,
       token,
     },
   });

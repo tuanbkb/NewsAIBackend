@@ -101,9 +101,9 @@ exports.getAll = (Model) =>
         data: {
           data: docs,
           page_info: {
-            currentPage: req.query.page * 1 || 1,
+            current_page: req.query.page * 1 || 1,
             limit,
-            totalPages,
+            total_pages: totalPages,
             count: totalDocs,
           },
         },

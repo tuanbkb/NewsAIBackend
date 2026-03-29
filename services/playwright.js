@@ -6,6 +6,68 @@ const { getArticleSummary } = require('./openAi');
 
 let browser;
 
+const extractThumbnail = async (page, baseUrl) => {
+  const normalizeImageUrl = (rawUrl) => {
+    if (!rawUrl) return '';
+    try {
+      const absolute = new URL(rawUrl.trim(), baseUrl).href;
+      return absolute.startsWith('data:') ? '' : absolute;
+    } catch (_error) {
+      return '';
+    }
+  };
+
+  let thumbnail = '';
+  const metaCandidates = [
+    { selector: 'meta[property="og:image"]', attribute: 'content' },
+    { selector: 'meta[name="og:image"]', attribute: 'content' },
+    { selector: 'meta[property="twitter:image"]', attribute: 'content' },
+    { selector: 'meta[name="twitter:image"]', attribute: 'content' },
+    { selector: 'link[rel="image_src"]', attribute: 'href' },
+  ];
+
+  await metaCandidates.reduce(async (previous, candidate) => {
+    await previous;
+    if (thumbnail) return;
+
+    const locator = page.locator(candidate.selector).first();
+    const count = await locator.count();
+    if (count > 0) {
+      const value = await locator.getAttribute(candidate.attribute);
+      thumbnail = normalizeImageUrl(value);
+    }
+  }, Promise.resolve());
+
+  if (!thumbnail) {
+    const imageCandidates = ['article img', 'main img', 'img'];
+    const imageAttributes = ['src', 'data-src', 'data-original'];
+
+    await imageCandidates.reduce(async (previous, selector) => {
+      await previous;
+      if (thumbnail) return;
+
+      const locator = page.locator(selector).first();
+      const count = await locator.count();
+      if (count > 0) {
+        await imageAttributes.reduce(async (prevAttribute, attribute) => {
+          await prevAttribute;
+          if (thumbnail) return;
+
+          const value =
+            attribute === 'src'
+              ? await locator.evaluate(
+                  (el) => el.currentSrc || el.getAttribute('src') || '',
+                )
+              : await locator.getAttribute(attribute);
+          thumbnail = normalizeImageUrl(value);
+        }, Promise.resolve());
+      }
+    }, Promise.resolve());
+  }
+
+  return thumbnail;
+};
+
 exports.getBrowser = async () => {
   if (!browser) {
     browser = await chromium.launch({
@@ -45,6 +107,7 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     if (finalUrl.includes('stories')) {
       return null;
     }
+    const thumbnail = await extractThumbnail(page, finalUrl);
 
     // page.on('console', (msg) => console.log('Browser:', msg.text()));
 
@@ -57,7 +120,6 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     if (!article) return null;
 
     const content = article.textContent.trim();
-    console.log('Extracted content: ', article.textContent);
 
     // const content = await page.evaluate(
     //   ({ minTextLength: minTxtLng, minWordCount: minWrdCnt }) => {
@@ -90,51 +152,11 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     //   { minTextLength, minWordCount },
     // );
     const strContent = content.toString();
-    // const summary = await retry(() => getArticleSummary(strContent));
-    const summary = '';
-    return { url: finalUrl, content: strContent, summary };
+    const summary = await retry(() => getArticleSummary(strContent));
+    return { url: finalUrl, summary, thumbnail };
   } catch (error) {
     console.error('Error resolving Google News URL:', error);
-    return { url: googleNewsUrl, content: '', summary: '' };
-  } finally {
-    await page.close();
-    await context.close();
-  }
-};
-
-exports.getNewsContent = async (url, role, locator) => {
-  const browserInstance = await this.getBrowser();
-  const context = await browserInstance.newContext({
-    userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36',
-  });
-
-  const page = await context.newPage();
-
-  try {
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000,
-    });
-
-    let element;
-    if (role && locator) {
-      element = page.getByRole(role).locator(locator);
-    } else if (role) {
-      element = page.getByRole(role);
-    } else if (locator) {
-      element = page.locator(locator);
-    } else {
-      element = page.locator('body');
-    }
-
-    const data = await element.allInnerTexts();
-    const content = data.join('\n');
-
-    return content;
-  } catch (error) {
-    console.error('Error getting news content:', error);
-    return '';
+    return { url: googleNewsUrl, summary: '', thumbnail: '' };
   } finally {
     await page.close();
     await context.close();
@@ -162,6 +184,7 @@ exports.getNewsContentByTextLength = async (
 
     const content = await page.evaluate(
       ({ minTextLength: minTxtLng, minWordCount: minWrdCnt }) => {
+        // eslint-disable-next-line no-undef
         const paragraphs = document.querySelectorAll('p');
         const filteredParagraphs = [];
 
