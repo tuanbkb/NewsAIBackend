@@ -39,11 +39,20 @@ exports.addNewsToFavorites = catchAsync(async (req, res, next) => {
     return next(new AppError('No news found with that ID', 404));
   }
 
+  const alreadyFavorited = await User.exists({
+    _id: req.user.id,
+    favorite_news: newsId,
+  });
+
   const user = await User.findByIdAndUpdate(
     req.user.id,
     { $addToSet: { favorite_news: newsId } },
     { new: true, runValidators: true },
   ).populate('favorite_news');
+
+  if (!alreadyFavorited) {
+    await News.findByIdAndUpdate(newsId, { $inc: { favorite_count: 1 } });
+  }
 
   res.status(200).json({
     status: 'success',
@@ -62,11 +71,23 @@ exports.removeNewsFromFavorites = catchAsync(async (req, res, next) => {
     return next(new AppError('Please provide a newsId', 400));
   }
 
+  const alreadyFavorited = await User.exists({
+    _id: req.user.id,
+    favorite_news: newsId,
+  });
+
   const user = await User.findByIdAndUpdate(
     req.user.id,
     { $pull: { favorite_news: newsId } },
     { new: true, runValidators: true },
   ).populate('favorite_news');
+
+  if (alreadyFavorited) {
+    await News.updateOne(
+      { _id: newsId, favorite_count: { $gt: 0 } },
+      { $inc: { favorite_count: -1 } },
+    );
+  }
 
   res.status(200).json({
     status: 'success',

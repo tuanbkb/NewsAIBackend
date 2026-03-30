@@ -1,6 +1,7 @@
 const express = require('express');
 const newsController = require('../controllers/newsController');
 const authController = require('../controllers/authController');
+const commentController = require('../controllers/commentController');
 
 const router = express.Router();
 
@@ -11,6 +12,11 @@ router
   .delete(newsController.deleteAllGoogleNews);
 
 router.route('/crawl').post(newsController.crawlGoogleNews);
+
+router
+  .route('/:newsId/comments')
+  .get(commentController.getCommentsByNews)
+  .post(authController.protect, commentController.createComment);
 
 router
   .route('/:id')

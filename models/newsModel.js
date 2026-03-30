@@ -49,6 +49,16 @@ const newsSchema = new mongoose.Schema(
       type: [String],
       trim: true,
     },
+    comments_count: {
+      type: Number,
+      default: 0,
+      min: [0, 'Comment count cannot be negative'],
+    },
+    favorite_count: {
+      type: Number,
+      default: 0,
+      min: [0, 'Favorite count cannot be negative'],
+    },
   },
   {
     timestamps: true,
