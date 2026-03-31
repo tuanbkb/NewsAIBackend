@@ -50,6 +50,8 @@ module.exports = (err, req, res, next) => {
   err.status = err.status || 'error';
   err.message = err.message || 'Something went wrong!';
 
+  console.log(err);
+
   let error = err;
 
   if (error instanceof mongoose.Error.CastError)

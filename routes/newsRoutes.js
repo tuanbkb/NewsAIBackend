@@ -6,6 +6,10 @@ const commentController = require('../controllers/commentController');
 const router = express.Router();
 
 router
+  .route('/search')
+  .get(authController.protect, newsController.getNewsFromKeyword);
+
+router
   .route('/')
   .post(newsController.createGoogleNews)
   .get(authController.protect, newsController.getAllGoogleNews)

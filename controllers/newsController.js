@@ -1,6 +1,9 @@
 const GoogleNews = require('../models/newsModel');
 const factory = require('./handlerFactory');
-const { getPopularNews } = require('../services/googleNews');
+const {
+  getPopularNews,
+  getNewsFromKeyword,
+} = require('../services/googleNews');
 const catchAsync = require('../utils/catchAsync');
 
 exports.createGoogleNews = factory.createOne(GoogleNews);
@@ -17,6 +20,19 @@ exports.crawlGoogleNews = catchAsync(async (req, res, next) => {
   res.status(201).json({
     status: 'success',
     code: 201,
+    results: data.length,
+    data: {
+      data,
+    },
+  });
+});
+
+exports.getNewsFromKeyword = catchAsync(async (req, res, next) => {
+  const { keyword, language = 'vi', countryCode = 'VN' } = req.query;
+  const data = await getNewsFromKeyword(keyword, language, countryCode);
+  res.status(200).json({
+    status: 'success',
+    code: 200,
     results: data.length,
     data: {
       data,

@@ -138,12 +138,65 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
     // Save to database
     const savedData = await News.insertMany(data, { ordered: false });
     console.log(`Saved ${savedData.length} Google News articles to database`);
-
-    await closeBrowser();
     // return data;
     // return savedData;
   } catch (error) {
     console.error('Error fetching popular news:', error);
     throw error;
+  } finally {
+    await closeBrowser();
+  }
+};
+
+exports.getNewsFromKeyword = async (
+  keyword,
+  language = 'vi',
+  countryCode = 'VN',
+) => {
+  try {
+    const res = await this.googleNewsInstance.get('/rss/search', {
+      params: {
+        q: keyword,
+        hl: `${language}-${countryCode}`,
+        gl: countryCode,
+        ceid: `${countryCode}:${language}`,
+      },
+    });
+    const parser = new XMLParser();
+    const parseRes = parser.parse(res.data);
+    const itemList = parseRes.rss.channel.item.slice(0, 5); // Limit to top 5 results
+    const data = await Promise.all(
+      itemList.map(async (item) =>
+        limit(async () => {
+          const { link } = item;
+          const resolved = await resolveGoogleNewsUrl(link);
+          if (!resolved || !resolved.summary || resolved.summary === '') {
+            console.log(
+              `Skipping article "${item.title}" due to unresolved URL: ${link}`,
+            );
+            return null;
+          }
+          return {
+            title: item.title.split(' - ')[0],
+            content: resolved.summary,
+            embedded_link: item.link,
+            pub_date: dayjs(item.pubDate).toISOString(),
+            source: item.source._url,
+            references: [resolved],
+            media: resolved.thumbnail ? [resolved.thumbnail] : undefined,
+          };
+        }),
+      ),
+    );
+
+    const resData = data.filter(
+      (item) => item !== null && item.content && item.content !== '',
+    );
+    return resData;
+  } catch (error) {
+    console.error('Error fetching news from keyword:', error);
+    throw error;
+  } finally {
+    await closeBrowser();
   }
 };
