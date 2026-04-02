@@ -6,17 +6,101 @@ const { getArticleSummary } = require('./openAi');
 
 let browser;
 
-const extractThumbnail = async (page, baseUrl) => {
-  const normalizeImageUrl = (rawUrl) => {
-    if (!rawUrl) return '';
-    try {
-      const absolute = new URL(rawUrl.trim(), baseUrl).href;
-      return absolute.startsWith('data:') ? '' : absolute;
-    } catch (_error) {
-      return '';
-    }
+const normalizeAssetUrl = (rawUrl, baseUrl) => {
+  if (!rawUrl) return '';
+  try {
+    const absolute = new URL(rawUrl.trim(), baseUrl).href;
+    return absolute.startsWith('data:') ? '' : absolute;
+  } catch (_error) {
+    return '';
+  }
+};
+
+const getFallbackSourceName = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch (_error) {
+    return '';
+  }
+};
+
+const extractSourceMetadata = async (page, baseUrl) => {
+  const normalizeSourceName = (value) => {
+    if (!value) return '';
+    const cleaned = value.replace(/^@/, '').replace(/\s+/g, ' ').trim();
+    return cleaned;
   };
 
+  let favicon = '';
+  const faviconCandidates = [
+    { selector: 'link[rel="icon"]', attribute: 'href' },
+    { selector: 'link[rel="shortcut icon"]', attribute: 'href' },
+    { selector: 'link[rel="apple-touch-icon"]', attribute: 'href' },
+    { selector: 'link[rel="apple-touch-icon-precomposed"]', attribute: 'href' },
+    { selector: 'link[rel="mask-icon"]', attribute: 'href' },
+  ];
+
+  await faviconCandidates.reduce(async (previous, candidate) => {
+    await previous;
+    if (favicon) return;
+
+    const locator = page.locator(candidate.selector).first();
+    const count = await locator.count();
+    if (count > 0) {
+      const value = await locator.getAttribute(candidate.attribute);
+      favicon = normalizeAssetUrl(value, baseUrl);
+    }
+  }, Promise.resolve());
+
+  if (!favicon) {
+    try {
+      const { origin } = new URL(baseUrl);
+      favicon = `${origin}/favicon.ico`;
+    } catch (_error) {
+      favicon = '';
+    }
+  }
+
+  let sourceName = '';
+  const sourceNameCandidates = [
+    { selector: 'meta[property="og:site_name"]', attribute: 'content' },
+    { selector: 'meta[name="application-name"]', attribute: 'content' },
+    {
+      selector: 'meta[name="apple-mobile-web-app-title"]',
+      attribute: 'content',
+    },
+    { selector: 'meta[name="twitter:site"]', attribute: 'content' },
+  ];
+
+  await sourceNameCandidates.reduce(async (previous, candidate) => {
+    await previous;
+    if (sourceName) return;
+
+    const locator = page.locator(candidate.selector).first();
+    const count = await locator.count();
+    if (count > 0) {
+      const value = await locator.getAttribute(candidate.attribute);
+      sourceName = normalizeSourceName(value);
+    }
+  }, Promise.resolve());
+
+  if (!sourceName) {
+    const pageTitle = normalizeSourceName(await page.title());
+    if (pageTitle.includes(' - ')) {
+      sourceName = pageTitle.split(' - ').pop().trim();
+    } else if (pageTitle.includes(' | ')) {
+      sourceName = pageTitle.split(' | ').pop().trim();
+    }
+  }
+
+  if (!sourceName) {
+    sourceName = getFallbackSourceName(baseUrl);
+  }
+
+  return { favicon, sourceName };
+};
+
+const extractThumbnail = async (page, baseUrl) => {
   let thumbnail = '';
   const metaCandidates = [
     { selector: 'meta[property="og:image"]', attribute: 'content' },
@@ -34,7 +118,7 @@ const extractThumbnail = async (page, baseUrl) => {
     const count = await locator.count();
     if (count > 0) {
       const value = await locator.getAttribute(candidate.attribute);
-      thumbnail = normalizeImageUrl(value);
+      thumbnail = normalizeAssetUrl(value, baseUrl);
     }
   }, Promise.resolve());
 
@@ -59,7 +143,7 @@ const extractThumbnail = async (page, baseUrl) => {
                   (el) => el.currentSrc || el.getAttribute('src') || '',
                 )
               : await locator.getAttribute(attribute);
-          thumbnail = normalizeImageUrl(value);
+          thumbnail = normalizeAssetUrl(value, baseUrl);
         }, Promise.resolve());
       }
     }, Promise.resolve());
@@ -108,6 +192,7 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
       return null;
     }
     const thumbnail = await extractThumbnail(page, finalUrl);
+    const { favicon, sourceName } = await extractSourceMetadata(page, finalUrl);
 
     // page.on('console', (msg) => console.log('Browser:', msg.text()));
 
@@ -153,10 +238,22 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     // );
     const strContent = content.toString();
     const summary = await retry(() => getArticleSummary(strContent));
-    return { url: finalUrl, summary, thumbnail };
+    return {
+      url: finalUrl,
+      summary,
+      thumbnail,
+      favicon,
+      source_name: sourceName,
+    };
   } catch (error) {
     console.error('Error resolving Google News URL:', error);
-    return { url: googleNewsUrl, summary: '', thumbnail: '' };
+    return {
+      url: googleNewsUrl,
+      summary: '',
+      thumbnail: '',
+      favicon: '',
+      source_name: '',
+    };
   } finally {
     await page.close();
     await context.close();

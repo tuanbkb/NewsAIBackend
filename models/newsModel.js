@@ -28,6 +28,10 @@ const newsSchema = new mongoose.Schema(
     references: {
       type: [
         {
+          title: {
+            type: String,
+            trim: true,
+          },
           url: {
             type: String,
             trim: true,
@@ -37,6 +41,14 @@ const newsSchema = new mongoose.Schema(
             trim: true,
           },
           thumbnail: {
+            type: String,
+            trim: true,
+          },
+          favicon: {
+            type: String,
+            trim: true,
+          },
+          source_name: {
             type: String,
             trim: true,
           },

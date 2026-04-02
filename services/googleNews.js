@@ -32,6 +32,8 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
     const parseRes = parser.parse(res.data);
     let itemList = parseRes.rss.channel.item;
 
+    // itemList = itemList.slice(0, 2); // Limit to top 20 articles to control processing time
+
     // Check for latest saved article to avoid duplicates
     const latest = await News.findOne().sort({ createdAt: 1 }).exec();
     console.log(latest);
@@ -56,14 +58,17 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
     // Collect all URLs to resolve
     const allUrls = [];
     const urlIndexMap = []; // Track which item and index each URL belongs to
+    const titleMap = [];
 
     itemList.forEach((item, itemIndex) => {
       const desHtml = item.description;
       const $ = cheerio.load(desHtml);
       $('a').each((linkIndex, element) => {
         const href = $(element).attr('href');
+        const title = $(element).text().trim();
         allUrls.push(href);
         urlIndexMap.push({ itemIndex, linkIndex });
+        titleMap.push(title);
       });
     });
 
@@ -71,9 +76,14 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
     console.log(
       `Resolving ${allUrls.length} URLs with concurrency limit of ${CONCURRENCY_LIMIT}...`,
     );
-    const resolvedUrls = await Promise.all(
+    let resolvedUrls = await Promise.all(
       allUrls.map((url) => limit(() => resolveGoogleNewsUrl(url))),
     );
+
+    resolvedUrls = resolvedUrls.map((url, index) => ({
+      ...url,
+      title: titleMap[index],
+    }));
 
     // Build the data with controlled concurrency
     const data = (
@@ -161,6 +171,7 @@ exports.getNewsFromKeyword = async (
         gl: countryCode,
         ceid: `${countryCode}:${language}`,
       },
+      responseType: 'arraybuffer',
     });
     const parser = new XMLParser();
     const parseRes = parser.parse(res.data);
