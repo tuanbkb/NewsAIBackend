@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema({
       ref: 'News',
     },
   ],
+  ai_search: {
+    type: Number,
+    default: 0,
+    min: [0, 'AI search count cannot be negative'],
+  },
 });
 
 userSchema.pre('save', async function (next) {

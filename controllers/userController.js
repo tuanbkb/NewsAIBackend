@@ -98,3 +98,23 @@ exports.removeNewsFromFavorites = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.increaseMyAiSearch = catchAsync(async (req, res, next) => {
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $inc: { ai_search: 1 } },
+    { new: true, runValidators: true },
+  );
+
+  if (!user) {
+    return next(new AppError('No user found with that ID', 404));
+  }
+
+  return res.status(200).json({
+    status: 'success',
+    code: 200,
+    data: {
+      ai_search: user.ai_search,
+    },
+  });
+});

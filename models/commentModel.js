@@ -23,10 +23,17 @@ const commentSchema = new mongoose.Schema(
         message: 'Comment cannot be empty',
       },
     },
-    isEdited: {
+    is_edited: {
       type: Boolean,
       default: false,
     },
+    liked_by: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        select: false,
+      },
+    ],
   },
   {
     timestamps: true,

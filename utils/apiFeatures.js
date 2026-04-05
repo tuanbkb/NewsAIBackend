@@ -56,11 +56,19 @@ class APIFeatures {
 
   // Populate referenced documents
   populate(path, select, options = {}) {
-    this.query = this.query.populate({
+    const populateConfig = {
       path,
-      select: `${select} -__v`,
       ...options,
-    });
+    };
+
+    if (select) {
+      // Avoid mixing inclusion and exclusion in projection (except _id)
+      populateConfig.select = select;
+    } else {
+      populateConfig.select = '-__v';
+    }
+
+    this.query = this.query.populate(populateConfig);
     return this;
   }
 

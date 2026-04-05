@@ -12,14 +12,14 @@ router
 router
   .route('/')
   .post(newsController.createGoogleNews)
-  .get(authController.protect, newsController.getAllGoogleNews)
+  .get(newsController.getAllGoogleNews)
   .delete(newsController.deleteAllGoogleNews);
 
 router.route('/crawl').post(newsController.crawlGoogleNews);
 
 router
   .route('/:newsId/comments')
-  .get(commentController.getCommentsByNews)
+  .get(authController.protect, commentController.getCommentsByNews)
   .post(authController.protect, commentController.createComment);
 
 router

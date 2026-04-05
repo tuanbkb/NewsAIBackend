@@ -22,6 +22,11 @@ router.delete(
   authController.protect,
   userController.removeNewsFromFavorites,
 );
+router.patch(
+  '/me/ai-search/increase',
+  authController.protect,
+  userController.increaseMyAiSearch,
+);
 
 router
   .route('/')

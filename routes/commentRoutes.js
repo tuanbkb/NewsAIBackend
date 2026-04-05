@@ -4,10 +4,14 @@ const authController = require('../controllers/authController');
 
 const router = express.Router();
 
+router.use(authController.protect);
+
+router.route('/:id/like').patch(commentController.toggleLikeComment);
+
 router
   .route('/:id')
   .get(commentController.getCommentById)
-  .patch(authController.protect, commentController.updateComment)
-  .delete(authController.protect, commentController.deleteComment);
+  .patch(commentController.updateComment)
+  .delete(commentController.deleteComment);
 
 module.exports = router;
