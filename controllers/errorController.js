@@ -32,14 +32,12 @@ const sendError = (err, res) => {
       status: 'error',
       code: 500,
       message: 'Something went wrong!',
-      error: err, //remove in production
     });
   } else {
     res.status(err.statusCode).json({
       status: err.status,
       code: err.statusCode,
       message: err.message,
-      error: err, //remove in production
     });
   }
 };

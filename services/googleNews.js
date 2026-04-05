@@ -190,11 +190,15 @@ exports.getNewsFromKeyword = async (
           return {
             title: item.title.split(' - ')[0],
             content: resolved.summary,
-            embedded_link: item.link,
-            pub_date: dayjs(item.pubDate).toISOString(),
-            source: item.source._url,
-            references: [resolved],
-            media: resolved.thumbnail ? [resolved.thumbnail] : undefined,
+            url: resolved.url,
+            // source: item.source._url,
+            // references: [resolved],
+            // media: resolved.thumbnail ? resolved.thumbnail : undefined,
+            favicon: resolved.favicon ? resolved.favicon : undefined,
+            source_name: resolved.source_name
+              ? resolved.source_name
+              : undefined,
+            thumbnail: resolved.thumbnail ? resolved.thumbnail : undefined,
           };
         }),
       ),
