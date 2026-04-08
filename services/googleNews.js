@@ -175,6 +175,10 @@ exports.getNewsFromKeyword = async (
     });
     const parser = new XMLParser();
     const parseRes = parser.parse(res.data);
+    const list = parseRes.rss.channel.item;
+    if (!list || list.length === 0) {
+      return [];
+    }
     const itemList = parseRes.rss.channel.item.slice(0, 5); // Limit to top 5 results
     const data = await Promise.all(
       itemList.map(async (item) =>
@@ -191,9 +195,6 @@ exports.getNewsFromKeyword = async (
             title: item.title.split(' - ')[0],
             content: resolved.summary,
             url: resolved.url,
-            // source: item.source._url,
-            // references: [resolved],
-            // media: resolved.thumbnail ? resolved.thumbnail : undefined,
             favicon: resolved.favicon ? resolved.favicon : undefined,
             source_name: resolved.source_name
               ? resolved.source_name

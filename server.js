@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cron = require('node-cron');
 const app = require('./app');
-const runDailyCron = require('./services/dailyCronJob');
 const { getPopularNews } = require('./services/googleNews');
 const { resolveGoogleNewsUrl } = require('./services/playwright');
 
