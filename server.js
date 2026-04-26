@@ -20,7 +20,12 @@ const db = process.env.DATABASE.replace(
 
 mongoose
   .connect(db, {
-    useNewUrlParser: true,
+    // useNewUrlParser: true,
+    serverApi: {
+      version: '1',
+      strict: true,
+      deprecationErrors: true,
+    },
   })
   .then(() => {
     console.log('DB connection successful!');

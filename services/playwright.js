@@ -201,6 +201,8 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     });
     const content = (parsedArticle.text || '').trim();
 
+    console.log(`Resolved content: ${content.slice(0, 200)}...`);
+
     if (!content) return null;
 
     // const content = await page.evaluate(

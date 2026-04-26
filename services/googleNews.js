@@ -91,7 +91,7 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
         itemList.map((item, itemIndex) =>
           limit(async () => {
             const links = [];
-            let valid = true;
+            // let valid = true;
 
             // Get resolved URLs for this item
             urlIndexMap.forEach((mapping, i) => {
@@ -102,15 +102,17 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
                   !resolvedUrl.summary ||
                   resolvedUrl.summary === ''
                 ) {
-                  valid = false;
+                  // valid = false;
+                } else {
+                  links.push(resolvedUrl);
                 }
-                links.push(resolvedUrl);
               }
             });
 
             console.log(`Article "${item.title}" has resolved URLs:`, links);
 
-            if (!valid) {
+            // if (!valid) {
+            if (links.length <= 1) {
               console.log(
                 `Skipping article "${item.title}" due to unresolved URLs.`,
               );
