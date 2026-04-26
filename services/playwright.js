@@ -1,8 +1,7 @@
 const { chromium } = require('playwright');
-const { JSDOM } = require('jsdom');
-const { Readability } = require('@mozilla/readability');
 const retry = require('../utils/retryFunc');
 const { getArticleSummary } = require('./openAi');
+const { parseArticleMainContent } = require('./newspaper3k');
 
 let browser;
 
@@ -197,14 +196,12 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     // page.on('console', (msg) => console.log('Browser:', msg.text()));
 
     const pageContent = await page.content();
-    const dom = new JSDOM(pageContent, { finalUrl });
+    const parsedArticle = parseArticleMainContent(pageContent, {
+      url: finalUrl,
+    });
+    const content = (parsedArticle.text || '').trim();
 
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    if (!article) return null;
-
-    const content = article.textContent.trim();
+    if (!content) return null;
 
     // const content = await page.evaluate(
     //   ({ minTextLength: minTxtLng, minWordCount: minWrdCnt }) => {

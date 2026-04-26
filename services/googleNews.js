@@ -32,7 +32,7 @@ exports.getPopularNews = async (language = 'vi', countryCode = 'VN') => {
     const parseRes = parser.parse(res.data);
     let itemList = parseRes.rss.channel.item;
 
-    // itemList = itemList.slice(0, 2); // Limit to top 20 articles to control processing time
+    itemList = itemList.slice(0, 2); // Limit to top 20 articles to control processing time
 
     // Check for latest saved article to avoid duplicates
     const latest = await News.findOne().sort({ createdAt: 1 }).exec();
