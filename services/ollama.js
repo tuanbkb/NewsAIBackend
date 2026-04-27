@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 exports.ollamaInstance = axios.create({
-  baseURL: 'http://localhost:11434',
+  baseURL: process.env.OLLAMA_URL || 'http://localhost:11434',
   timeout: 600000,
 });
 
