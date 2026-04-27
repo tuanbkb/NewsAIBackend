@@ -1,4 +1,4 @@
-const { getNewsFromArticlesSummary } = require('../services/openAi');
+const { getNewsFromArticlesSummary } = require('../services/ollama');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 

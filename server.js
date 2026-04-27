@@ -36,7 +36,23 @@ const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
 });
 
-getPopularNews();
+// Run getPopularNews 3 times/day: 00:00, 08:00, 16:00
+cron.schedule(
+  '0 */8 * * *',
+  async () => {
+    try {
+      console.log('⏰ Cron started: getPopularNews');
+      await getPopularNews();
+      console.log('✅ Cron finished: getPopularNews');
+    } catch (err) {
+      console.log('💥 Cron error: getPopularNews');
+      console.log(err.name, err.message);
+    }
+  },
+  {
+    timezone: process.env.CRON_TIMEZONE || 'Asia/Ho_Chi_Minh',
+  },
+);
 
 process.on('unhandledRejection', (err) => {
   console.log('💥 UNHANDLED REJECTION! Shutting down...');

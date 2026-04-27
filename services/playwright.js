@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 const retry = require('../utils/retryFunc');
-const { getArticleSummary } = require('./openAi');
+const { getArticleSummary } = require('./ollama');
 const { parseArticleMainContent } = require('./newspaper3k');
 
 let browser;
@@ -201,7 +201,7 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     });
     const content = (parsedArticle.text || '').trim();
 
-    console.log(`Resolved content: ${content.slice(0, 200)}...`);
+    // console.log(`Resolved content: ${content.slice(0, 200)}...`);
 
     if (!content) return null;
 
