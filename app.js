@@ -4,12 +4,11 @@ const morgan = require('morgan');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const newsRouter = require('./routes/newsRoutes');
-const trendRouter = require('./routes/trendRoutes');
-const googleNewsRouter = require('./routes/newsRoutes');
 const userRouter = require('./routes/userRoutes');
 const commentRouter = require('./routes/commentRoutes');
 const aiRouter = require('./routes/aiRoutes');
 const saveNewsRouter = require('./routes/saveNewsRoutes');
+const trendRouter = require('./routes/trendRoutes');
 
 const app = express();
 
@@ -25,12 +24,11 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/v1/news', newsRouter);
-app.use('/api/v1/trends', trendRouter);
-app.use('/api/v1/google-news', googleNewsRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/comments', commentRouter);
 app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/save-news', saveNewsRouter);
+app.use('/api/v1/trends', trendRouter);
 
 // Handling unhandled routes
 app.use((req, res, next) => {

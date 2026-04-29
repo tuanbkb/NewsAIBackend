@@ -1,9 +1,11 @@
-const Trend = require('../models/trendModel');
-const factory = require('./handlerFactory');
+const catchAsync = require('../utils/catchAsync');
+const getTrends = require('../services/trend');
 
-exports.createTrend = factory.createOne(Trend);
-exports.getAllTrends = factory.getAll(Trend);
-exports.getTrendById = factory.getById(Trend);
-exports.updateTrend = factory.updateOne(Trend);
-exports.deleteTrend = factory.deleteOne(Trend);
-exports.deleteAllTrends = factory.deleteAll(Trend);
+exports.getTrends = catchAsync(async (req, res, next) => {
+  const data = await getTrends();
+  res.status(200).json({
+    status: 'success',
+    code: 200,
+    data: data,
+  });
+});
