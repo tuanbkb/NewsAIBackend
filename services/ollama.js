@@ -7,7 +7,7 @@ exports.ollamaInstance = axios.create({
 
 exports.getOllamaResponse = async (system, prompt, model, maxTokens = 3072) => {
   try {
-    const res = await this.ollamaInstance.post(`/api/generate`, {
+    const res = await this.ollamaInstance.post(`/api/code`, {
       model: model || 'hf.co/unsloth/granite-4.0-h-tiny-GGUF:Q4_K_M',
       system: system,
       prompt: prompt,
