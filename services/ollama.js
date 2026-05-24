@@ -7,14 +7,25 @@ exports.ollamaInstance = axios.create({
 
 exports.getOllamaResponse = async (system, prompt, model, maxTokens = 3072) => {
   try {
-    const res = await this.ollamaInstance.post(`/api/code`, {
-      model: model || 'hf.co/unsloth/granite-4.0-h-tiny-GGUF:Q4_K_M',
-      system: system,
-      prompt: prompt,
+    const messages = [
+      {
+        role: 'system',
+        content: system,
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ];
+    const res = await this.ollamaInstance.post(`/api/chat`, {
+      model: model || 'hf.co/Kondara/SeaLLMs-v3-7B-Chat-Q4_K_M-GGUF:Q4_K_M',
+      messages: messages,
       stream: false,
-      max_tokens: maxTokens,
+      options: {
+        num_predict: maxTokens,
+      },
     });
-    return res.data;
+    return res.data.message.content;
   } catch (error) {
     console.error('Error fetching Ollama response:', error);
     throw error;
@@ -23,10 +34,10 @@ exports.getOllamaResponse = async (system, prompt, model, maxTokens = 3072) => {
 
 exports.getArticleSummary = async (articleContent) => {
   try {
-    const systemPrompt = `You are a professional news editor. Your task is to create a short, factual summary from the following article content in its original language. The input article is provided as a string, including the article's content.\n\nRequirements:\n- Focus only on the actual news content: what happened, who was involved, when, and why it matters.\n- Keep the tone neutral and objective.\n- Write a concise summary of 3–5 sentences.\n- Do not include anything besides the summary result itself.`;
+    const systemPrompt = `You are a professional news editor. Your task is to create a short, factual summary from the following article content in Vietnamese. The input article is provided as a string, including the article's content.\n\nRequirements:\n- Focus only on the actual news content: what happened, who was involved, when, and why it matters.\n- Keep the tone neutral and objective.\n- Write a concise summary of 3–5 sentences.\n- Do not include anything besides the summary result itself.`;
     const prompt = `Tóm tắt nội dung bài báo trên thành một đoạn dài khoảng 3-5 câu theo văn phong báo chí:\n\n${articleContent}`;
     const res = await this.getOllamaResponse(systemPrompt, prompt);
-    return res.response;
+    return res;
   } catch (error) {
     console.error('Error summarizing article content:', error);
     throw error;
@@ -41,7 +52,7 @@ exports.getNewsFromArticlesSummary = async (summaries) => {
       .join('\n\n');
     const prompt = `Hãy tổng hợp các nội dung tóm tắt sau thành một bài báo tổng hợp hoàn chỉnh theo văn phong báo chí:\n\n${summariesText}`;
     const res = await this.getOllamaResponse(systemPrompt, prompt);
-    return res.response;
+    return res;
   } catch (error) {
     console.error('Error generating news content from summaries:', error);
     throw error;

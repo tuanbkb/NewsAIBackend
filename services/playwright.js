@@ -190,6 +190,7 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     if (finalUrl.includes('stories')) {
       return null;
     }
+
     const thumbnail = await extractThumbnail(page, finalUrl);
     const { favicon, sourceName } = await extractSourceMetadata(page, finalUrl);
 
@@ -201,24 +202,11 @@ exports.resolveGoogleNewsUrl = async (googleNewsUrl) => {
     });
     const content = (parsedArticle.text || '').trim();
 
-    // console.log(`Resolved content: ${content.slice(0, 200)}...`);
-
     if (!content) return null;
 
     // const content = await page.evaluate(
     //   ({ minTextLength: minTxtLng, minWordCount: minWrdCnt }) => {
-    //     const paragraphs = document.querySelectorAll('p');
-    //     const filteredParagraphs = [];
-
-    //     paragraphs.forEach((p, index) => {
-    //       const text = Array.from(p.childNodes)
-    //         .filter((n) => n.nodeType === Node.TEXT_NODE)
-    //         .map((n) => n.textContent)
-    //         .join('')
-    //         .trim();
-
     //       if (text.length === 0) return;
-
     //       const wordCount = text.split(/\s+/).length;
     //       const textLength = text.length;
 

@@ -111,7 +111,6 @@ const BLOCKED_SELECTORS = [
   'iframe',
   'svg',
   'canvas',
-  'form',
   'footer',
   'header',
   'nav',
@@ -290,7 +289,7 @@ const cleanDocument = (doc) => {
   all.forEach((node) => {
     const classId = `${node.className || ''} ${node.id || ''}`.toLowerCase();
     if (
-      /comment|footer|header|sidebar|promo|advert|subscribe|social|related|cookie/.test(
+      /comment|footer|header|promo|advert|subscribe|social|related|cookie/.test(
         classId,
       )
     ) {

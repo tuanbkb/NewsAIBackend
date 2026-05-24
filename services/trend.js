@@ -5,7 +5,7 @@ module.exports = async () => {
     const browser = await getBrowser();
     const page = await browser.newPage();
     await page.goto('https://trends.google.com/trending?geo=VN', {
-      waitUntil: 'networkidle0',
+      waitUntil: 'domcontentloaded',
     });
     const trends = await page.evaluate(() => {
       // eslint-disable-next-line no-undef
